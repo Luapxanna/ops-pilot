@@ -3,6 +3,7 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { jwt } from "better-auth/plugins"
 import { jwtVerify, createLocalJWKSet } from 'jose'
+import { AuthenticationError } from './auth.service';
 
 const prisma = new PrismaClient();
 
@@ -60,10 +61,10 @@ export const verifyToken = async (token: string) => {
                 }
             }
         });
-        
+
         if (!session) {
             console.log('Session not found');
-            return null;
+            throw new AuthenticationError('Session not found or token is invalid', 'UNAUTHORIZED');
         }
 
         console.log('Found session:', session);
@@ -73,7 +74,7 @@ export const verifyToken = async (token: string) => {
         };
     } catch (error) {
         console.error('Token verification error:', error);
-        return null;
+        throw new AuthenticationError('Invalid or expired token', 'FORBIDDEN');
     }
 };
 
