@@ -5,44 +5,38 @@ import { DecodedToken } from '../project/model';
 const prisma = new PrismaClient();
 
 async function assignTask(
-    name: string,
-    description: string,
+    taskId: number,
     assigneeId: string,
-    projectId: number,
-    workflowId: number,
-    dependencies: number[] = [], // Default to an empty array
     decodedToken: DecodedToken
 ) {
-    if (!name || !description || !assigneeId || !projectId || !workflowId) {
-        throw new Error('Missing required fields for task creation');
+    if (!taskId || !assigneeId) {
+        throw new Error('Missing required fields for task assignment');
     }
 
-    // Check if the user has the ProjectManager role
-    await authorizeRole('PROJECTMANAGER')(decodedToken);
+    // Check if the user has the ProjectManager or OrgAdmin role
+    await authorizeRole(['PROJECTMANAGER', 'ORGADMIN'])(decodedToken);
 
     try {
-        // Ensure all dependencies exist
-        const dependencyTasks = await prisma.task.findMany({
-            where: { id: { in: dependencies } },
+        // Fetch the task to ensure it exists
+        const task = await prisma.task.findUnique({
+            where: { id: taskId },
         });
 
-        if (dependencyTasks.length !== dependencies.length) {
-            throw new Error('Some dependencies do not exist');
+        if (!task) {
+            throw new Error('Task not found');
         }
 
-        const task = await prisma.task.create({
+        // Update the task with the assignee and set status to IN_PROGRESS
+        const updatedTask = await prisma.task.update({
+            where: { id: taskId },
             data: {
-                name,
-                description,
                 assigneeId,
-                projectId, 
-                workflowId,
-                dependencies: {
-                    connect: dependencies.map((id) => ({ id })),
-                },
+                status: 'IN_PROGRESS',
+                inProgressAt: new Date(), // Set the timestamp for IN_PROGRESS
             },
         });
-        return task;
+
+        return updatedTask;
     } catch (error) {
         console.error('Error assigning task:', error);
         throw new Error('Failed to assign task');
@@ -76,10 +70,19 @@ async function updateTaskStatus(taskId: number, newStatus: Status) {
             }
         }
 
+        // Prepare data for updating the task
+        const updateData: any = { status: newStatus };
+
+        if (newStatus === Status.IN_PROGRESS) {
+            updateData.inProgressAt = new Date(); // Set the timestamp for IN_PROGRESS
+        } else if (newStatus === Status.COMPLETED) {
+            updateData.completedAt = new Date(); // Set the timestamp for COMPLETED
+        }
+
         // Update the task status
         const updatedTask = await prisma.task.update({
             where: { id: taskId },
-            data: { status: newStatus },
+            data: updateData,
         });
 
         return updatedTask;

@@ -8,24 +8,22 @@ const prisma = new PrismaClient();
 type Status = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'PENDING' | 'OVERDUE';
 export const assignTask = api(
     {
-        method: 'POST',
-        path: '/tasks/assign',
+        method: 'PATCH',
+        path: '/tasks/:id/assign',
     },
-    async ({ name, description, assigneeId, projectId, workflowId, dependencies = [], headers }: { name: string; description: string; assigneeId: string; projectId: number; workflowId: number; dependencies?: number[]; headers: Record<string, string> }) => {
+    async ({ id, assigneeId, headers }: { id: number; assigneeId: string; headers: Record<string, string> }) => {
         console.log('Headers:', headers); // Log headers
-        console.log('Body:', { name, description, assigneeId, projectId, workflowId, dependencies }); // Log body
+        console.log('Body:', { id, assigneeId }); // Log body
 
         const decodedToken = await authenticateRequest(headers); // Authenticate the request
         console.log('Decoded Token:', decodedToken); // Log decoded token
-
         const mappedToken: DecodedToken = {
             id: decodedToken.user.id,
             role: decodedToken.user.role,
             organizationId: decodedToken.user.organizationId,
         };
-
-        const task = await TaskService.assignTask(name, description, assigneeId, workflowId, projectId, dependencies, mappedToken);
-        return { success: true, data: task };
+        const updatedTask = await TaskService.assignTask(id, assigneeId, mappedToken);
+        return { success: true, data: updatedTask };
     }
 );
 

@@ -7,8 +7,9 @@
   "type": "module",
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^20.17.45",
+    "@types/node": "^20.17.46",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "bcryptjs": "^3.0.2",
     "better-auth": "^1.2.7",
     "csv-parser": "^3.2.0",
+    "date-fns": "^4.1.0",
     "encore.dev": "^1.46.21",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",

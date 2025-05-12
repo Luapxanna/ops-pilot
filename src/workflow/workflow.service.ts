@@ -8,7 +8,7 @@ export async function createWorkflow(
     name: string,
     description: string,
     projectId: number,
-    tasks: { name: string; description: string; assigneeId: string; status?: string; dependencyIds?: number[] }[],
+    tasks: { name: string; description: string; dependencyIds?: number[] }[],
     decodedToken: DecodedToken
 ) {
     // Check if the user has the ProjectManager or OrgAdmin role
@@ -25,14 +25,13 @@ export async function createWorkflow(
                     create: tasks.map((task) => ({
                         name: task.name,
                         description: task.description,
-                        status: task.status as Status || 'NOT_STARTED', // Use default status if not provided
-                        assignee: { connect: { id: task.assigneeId } }, // Connect to the user by ID
-                        project: { connect: { id: projectId } }, // Connect to the project by ID
+                        status: 'NOT_STARTED', // Always set to NOT_STARTED
                         dependencies: task.dependencyIds
                             ? {
                                   connect: task.dependencyIds.map((dependencyId) => ({ id: dependencyId })), // Connect dependencies
                               }
                             : undefined,
+                        project: { connect: { id: projectId } }, // Connect to the project
                     })),
                 },
             },
