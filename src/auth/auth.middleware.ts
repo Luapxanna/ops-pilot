@@ -2,27 +2,39 @@ import { AuthenticationError } from './auth.service'; // Adjust path
 import { verifyToken } from './auth'; // Replace with the actual plugin import
 
 export async function authenticateRequest(headers: Record<string, string | undefined>) {
-    const authHeader = headers['authorization'];
+    // Normalize header keys to handle cases like 'Authorization ' or different casing
+    const normalizedHeaders = Object.keys(headers).reduce((acc, key) => {
+        acc[key.trim().toLowerCase()] = headers[key];
+        return acc;
+    }, {} as Record<string, string | undefined>);
+
+    const authHeader = normalizedHeaders['authorization']; // Use normalized key
+    console.log('Authorization Header:', authHeader); // Log the header
+
     const token = authHeader && authHeader.split(' ')[1];
+    console.log('Extracted Token:', token); // Log the extracted token
 
     if (!token) {
         throw new AuthenticationError('Access token is missing or invalid', 'UNAUTHORIZED');
     }
 
     try {
-        // Use the plugin's method to verify and decode the token
-        const decoded = await verifyToken(token); // Await the result
-        return decoded; // e.g., { userId, user: { id, email, role, organizationId } }
+        const decoded = await verifyToken(token); // Verify the token
+        console.log('Decoded Token:', decoded); // Log decoded token
+        return decoded;
     } catch (error) {
         console.error('Token verification error:', error);
         throw new AuthenticationError('Invalid or expired token', 'FORBIDDEN');
     }
 }
 
-export function authorizeRole(requiredRole: string) {
+export function authorizeRole(requiredRoles: string | string[]) {
     return async (decodedToken: { id: string; role: string }) => {
-        if (decodedToken.role !== requiredRole) {
-            throw new AuthenticationError('Access denied: insufficient permissions', 'FORBIDDEN');
+        const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+        console.log('Roles:', roles); // Log the required roles
+        console.log('Decoded Token Role:', decodedToken.role); // Log the decoded token role
+        if (!roles.includes(decodedToken.role)) {
+            throw new Error('Access denied: insufficient permissions');
         }
     };
 }

@@ -5,7 +5,7 @@ import { ApiResponse } from '../shared/response';
 import { getUserFromToken } from '../auth/auth';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-
+type Role = 'ORGADMIN' | 'PROJECTMANAGER' | 'EMPLOYEE';
 export const getUserInfoAPI = api(
     {
         method: 'GET',
@@ -41,10 +41,10 @@ export const getUserInfoAPI = api(
     }
 );
 
-export const assignProjectManagerAPI = api({
+export const assignUserRole = api({
     method: "POST",
     path: "/admin/assign-project-manager",
-}, async ({ userId, token }: { userId: string, token: string}): Promise<ApiResponse<User>> => {
+}, async ({ userId, token, role }: { userId: string, token: string, role: Role}): Promise<ApiResponse<User>> => {
     try {
         const adminUser = await getUserFromToken(token);
         if (!adminUser) {
@@ -74,7 +74,6 @@ export const assignProjectManagerAPI = api({
             };
         }
 
-        const role = 'PROJECTMANAGER'
         const user = await assignRole(userId, role);
         return {
             success: true,

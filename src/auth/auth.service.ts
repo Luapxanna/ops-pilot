@@ -1,9 +1,6 @@
 import { api } from 'encore.dev/api';
 import { auth, getUserFromToken } from './auth'
 
-if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is required');
-}
 
 
 export class AuthenticationError extends Error {
@@ -57,18 +54,28 @@ export const login = api(
         method: "POST",
         path: "/auth/login",
     },
-    async ({ email, password}: { email: string; password: string}) => {
+    async ({ email, password }: { email: string; password: string }) => {
         try {
-            const result = await auth.api.signInEmail({
+            const res = await auth.api.signInEmail({
                 body: {
                     email,
                     password,
                 },
+                asResponse: true, // Get the full response to extract the token
             });
+
+            const cookies = res.headers.get('set-cookie'); // Extract cookies from the response
+            const token = cookies?.split(';')[0].split('=')[1]; // Extract the JWT token from the cookie
+
+            const userData = await res.json(); // Convert response to JSON
 
             return {
                 success: true,
-                user: result.user,
+                message: "Login successful",
+                data: {
+                    token, // Return the JWT token
+                    user: userData, // Return the user data
+                },
             };
         } catch (error) {
             console.error('Login error:', error);
@@ -77,6 +84,32 @@ export const login = api(
     }
 );
 
+export const logout = api(
+    {
+        method: "POST",
+        path: "/auth/logout",
+    },
+    async ({ token }: { token: string }) => {
+        try {
+            // Use the token to sign out the user
+            await auth.api.signOut({
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            return {
+                success: true,
+                message: "Logged out successfully.",
+            };
+        } catch (error) {
+            console.error("Logout error:", error);
+            throw new Error("Failed to log out. Please try again.");
+        }
+    }
+);
+
+    
 
 export const getUser = api(
     {
@@ -94,3 +127,4 @@ export const getUser = api(
         };
     }
 );
+

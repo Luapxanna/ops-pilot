@@ -8,11 +8,11 @@ export async function createWorkflow(
     name: string,
     description: string,
     projectId: number,
-    tasks: { name: string; description: string; assigneeId: string; status?: string }[],
+    tasks: { name: string; description: string; assigneeId: string; status?: string; dependencyIds?: number[] }[],
     decodedToken: DecodedToken
 ) {
-    // Check if the user has the ProjectManager role
-    await authorizeRole('PROJECTMANAGER')(decodedToken);
+    // Check if the user has the ProjectManager or OrgAdmin role
+    await authorizeRole(['PROJECTMANAGER', 'ORGADMIN'])(decodedToken);
 
     try {
         const workflow = await prisma.workflow.create({
@@ -25,10 +25,14 @@ export async function createWorkflow(
                     create: tasks.map((task) => ({
                         name: task.name,
                         description: task.description,
-                        assigneeId: task.assigneeId,
-                        status: task.status as Status || 'NOT_STARTED',
-                        assignee: { connect: { id: task.assigneeId } }, // Assuming assigneeId maps to an existing user
-                        project: { connect: { id: projectId } }, // Assuming projectId is provided
+                        status: task.status as Status || 'NOT_STARTED', // Use default status if not provided
+                        assignee: { connect: { id: task.assigneeId } }, // Connect to the user by ID
+                        project: { connect: { id: projectId } }, // Connect to the project by ID
+                        dependencies: task.dependencyIds
+                            ? {
+                                  connect: task.dependencyIds.map((dependencyId) => ({ id: dependencyId })), // Connect dependencies
+                              }
+                            : undefined,
                     })),
                 },
             },
@@ -45,8 +49,8 @@ export async function createWorkflow(
 
 // New function to list workflows
 export async function listWorkflows(decodedToken: DecodedToken) {
-    // Check if the user has the ProjectManager role
-    await authorizeRole('PROJECTMANAGER')(decodedToken);
+    // Check if the user has the ProjectManager or OrgAdmin role
+    await authorizeRole(['PROJECTMANAGER', 'ORGADMIN'])(decodedToken);
 
     try {
         const workflows = await prisma.workflow.findMany({
@@ -65,8 +69,8 @@ export async function listWorkflows(decodedToken: DecodedToken) {
 }
 
 export async function getWorkflowById(id: number, decodedToken: DecodedToken) {
-    // Check if the user has the ProjectManager role
-    await authorizeRole('PROJECTMANAGER')(decodedToken);
+    // Check if the user has the ProjectManager or OrgAdmin role
+    await authorizeRole(['PROJECTMANAGER', 'ORGADMIN'])(decodedToken);
 
     try {
         const workflow = await prisma.workflow.findUnique({

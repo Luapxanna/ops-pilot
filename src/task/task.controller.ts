@@ -11,52 +11,21 @@ export const assignTask = api(
         method: 'POST',
         path: '/tasks/assign',
     },
-    async ({
-        params: {
-            name,
-            description,
-            assigneeId,
-            projectId,
-            workflowId,
-            dependencies = [], // Default to an empty array
-        },
-        headers,
-    }: {
-        params: {
-            name: string;
-            description: string;
-            assigneeId: string;
-            projectId: number;
-            workflowId: number;
-            dependencies?: number[];
-        };
-        headers: Record<string, string>;
-    }) => {
-        if (!name || !description || !assigneeId || !projectId || !workflowId) {
-            throw new Error('Missing required fields for task creation');
-        }
+    async ({ name, description, assigneeId, projectId, workflowId, dependencies = [], headers }: { name: string; description: string; assigneeId: string; projectId: number; workflowId: number; dependencies?: number[]; headers: Record<string, string> }) => {
+        console.log('Headers:', headers); // Log headers
+        console.log('Body:', { name, description, assigneeId, projectId, workflowId, dependencies }); // Log body
 
-        const rawToken = await authenticateRequest(headers); // Authenticate the request
-        const decodedToken: DecodedToken = {
-            id: rawToken.user.id,
-            role: rawToken.user.role,
-            organizationId: rawToken.user.organizationId,
+        const decodedToken = await authenticateRequest(headers); // Authenticate the request
+        console.log('Decoded Token:', decodedToken); // Log decoded token
+
+        const mappedToken: DecodedToken = {
+            id: decodedToken.user.id,
+            role: decodedToken.user.role,
+            organizationId: decodedToken.user.organizationId,
         };
 
-        const task = await TaskService.assignTask(
-            name,
-            description,
-            assigneeId,
-            workflowId,
-            projectId,
-            dependencies,
-            decodedToken
-        );
-
-        return {
-            success: true,
-            data: task,
-        };
+        const task = await TaskService.assignTask(name, description, assigneeId, workflowId, projectId, dependencies, mappedToken);
+        return { success: true, data: task };
     }
 );
 
@@ -65,24 +34,14 @@ export const updateTaskStatus = api(
         method: 'PATCH',
         path: '/tasks/status',
     },
-    async ({
-         id, status , headers,
-    }: {
-       id: number; status: Status ;
-        headers: Record<string, string>;
-    }) => {
-        if (!status) {
-            throw new Error('The status field is required and cannot be undefined');
-        }
+    async ({ id, status, headers }: { id: number; status: Status; headers: Record<string, string> }) => {
+        console.log('Headers:', headers); // Log headers
+        console.log('Body:', { id, status }); // Log body
 
         const decodedToken = await authenticateRequest(headers); // Authenticate the request
+        console.log('Decoded Token:', decodedToken); // Log decoded token
 
-        // Update the task status
         const updatedTask = await TaskService.updateTaskStatus(id, status);
-
-        return {
-            success: true,
-            data: updatedTask,
-        };
+        return { success: true, data: updatedTask };
     }
 );
