@@ -1,4 +1,3 @@
-import { Service } from "encore.dev/service";
 import { api } from 'encore.dev/api';
 import { fetchLeaderboard } from './leaderboard.service';
 
@@ -26,4 +25,3 @@ export const getLeaderboard = api(
     }
 );
 
-export default new Service("leaderboard");

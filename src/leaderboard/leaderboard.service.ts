@@ -29,7 +29,9 @@ export async function fetchLeaderboard() {
 function calculateLeaderboard(data: any[]) {
     return data
         .map((user) => {
-            const totalHours = user.timeLogs.reduce((sum: number, log: any) => sum + log.hours, 0);
+            // Ensure timeLogs is an array
+            const timeLogs = user.timeLogs || [];
+            const totalHours = timeLogs.reduce((sum: number, log: any) => sum + log.hours, 0);
             const efficiency = totalHours > 0 ? user.tasks.length / totalHours : 0;
 
             // Assign badges based on efficiency
@@ -45,9 +47,9 @@ function calculateLeaderboard(data: any[]) {
             return {
                 userId: user.id,
                 name: user.name,
-                efficiency: efficiency.toFixed(2), // Round to 2 decimal places
+                efficiency: parseFloat(efficiency.toFixed(2)), // Round to 2 decimal places and ensure it's a number
                 badge,
             };
         })
-        .sort((a, b) => parseFloat(b.efficiency) - parseFloat(a.efficiency)); // Sort by efficiency in descending order
+        .sort((a, b) => b.efficiency - a.efficiency); // Sort by efficiency in descending order
 }
