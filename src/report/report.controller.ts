@@ -1,3 +1,5 @@
+import fs from 'fs/promises';
+import path from 'path';
 import { api } from 'encore.dev/api';
 import { exportReports } from './report.service';
 
@@ -6,26 +8,29 @@ import { exportReports } from './report.service';
  */
 export const exportReportsAPI = api(
     {
-        method: 'POST', // Change to POST
-        path: '/reports/export', // Keep the same path
+        method: 'POST',
+        path: '/reports/export',
     },
     async ({ body }: { body: { format: string; filter?: string } }) => {
-        console.log('Received body:', body); // Log the request body
+        console.log('Received body:', body);
 
         const { format, filter } = body;
 
         try {
-            const parsedFilter = filter ? JSON.parse(filter) : undefined; // Parse filter if provided
-            console.log('Parsed filter:', parsedFilter); // Log the parsed filter
+            const parsedFilter = filter ? JSON.parse(filter) : undefined;
+            console.log('Parsed filter:', parsedFilter);
 
             const { data, contentType, fileName } = await exportReports(format, parsedFilter);
 
+            // Save the file to the server
+            const filePath = path.join(process.cwd(), 'ExportedReports', fileName);
+            await fs.writeFile(filePath, data);
+
+            console.log(`Report saved to: ${filePath}`);
+
             return {
-                headers: {
-                    'Content-Disposition': `attachment; filename=${fileName}`,
-                    'Content-Type': contentType,
-                },
-                body: data,
+                success: true,
+                message: `Report saved to ${filePath}`,
             };
         } catch (error) {
             console.error('Error exporting reports:', error);
