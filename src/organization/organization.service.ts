@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-
+import { logAuditEntry } from '../audit/audit.service'; 
 const prisma = new PrismaClient();
 
 export interface Organization {
@@ -24,6 +24,13 @@ export async function createOrganization(name: string, description: string): Pro
                 createdAt: true,
             },
         });
+        await logAuditEntry(
+            'Organization',
+            'CREATE',
+            null,
+            newOrganization,
+            '',
+        ); 
         return newOrganization;
     } catch (error) {
         console.error("Error creating organization:", error);

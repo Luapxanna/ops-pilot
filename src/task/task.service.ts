@@ -1,10 +1,11 @@
 import { PrismaClient, Status } from '@prisma/client'; // Import the Status enum
 import { authorizeRole } from '../auth/auth.middleware';
 import { DecodedToken } from '../project/model';
+import { logAuditEntry } from '../audit/audit.service'; // Import the logAuditEntry function
 
 const prisma = new PrismaClient();
 
-async function assignTask(
+export async function assignTask(
     taskId: number,
     assigneeId: string,
     decodedToken: DecodedToken
@@ -36,6 +37,15 @@ async function assignTask(
             },
         });
 
+        // Log the update
+        await logAuditEntry(
+            'Task',
+            'UPDATE',
+            task, // Log the previous task state
+            updatedTask,
+            decodedToken.id
+        );
+
         return updatedTask;
     } catch (error) {
         console.error('Error assigning task:', error);
@@ -43,53 +53,28 @@ async function assignTask(
     }
 }
 
-async function updateTaskStatus(taskId: number, newStatus: Status) {
-    if (!newStatus) {
-        throw new Error('The new status is undefined or invalid');
-    }
+export async function updateTaskStatus(taskId: number, newStatus: Status, decodedToken: DecodedToken) {
+    const previousTask = await prisma.task.findUnique({ where: { id: taskId } });
 
-    try {
-        // Fetch the task and its dependencies
-        const task = await prisma.task.findUnique({
-            where: { id: taskId },
-            include: { dependencies: true },
-        });
+    const updatedTask = await prisma.task.update({
+        where: { id: taskId },
+        data: {
+            status: newStatus,
+            inProgressAt: newStatus === 'IN_PROGRESS' ? new Date() : previousTask?.inProgressAt,
+            completedAt: newStatus === 'COMPLETED' ? new Date() : previousTask?.completedAt,
+        },
+    });
 
-        if (!task) {
-            throw new Error('Task not found');
-        }
+    // Log the update
+    await logAuditEntry(
+        'Task',
+        'UPDATE',
+        previousTask,
+        updatedTask,
+        decodedToken.id
+    );
 
-        // If the new status is IN_PROGRESS, ensure all dependencies are COMPLETED
-        if (newStatus === Status.IN_PROGRESS) {
-            const allDependenciesCompleted = task.dependencies.every(
-                (dependency) => dependency.status === Status.COMPLETED
-            );
-
-            if (!allDependenciesCompleted) {
-                throw new Error('Cannot mark task as IN_PROGRESS because not all dependencies are COMPLETED');
-            }
-        }
-
-        // Prepare data for updating the task
-        const updateData: any = { status: newStatus };
-
-        if (newStatus === Status.IN_PROGRESS) {
-            updateData.inProgressAt = new Date(); // Set the timestamp for IN_PROGRESS
-        } else if (newStatus === Status.COMPLETED) {
-            updateData.completedAt = new Date(); // Set the timestamp for COMPLETED
-        }
-
-        // Update the task status
-        const updatedTask = await prisma.task.update({
-            where: { id: taskId },
-            data: updateData,
-        });
-
-        return updatedTask;
-    } catch (error) {
-        console.error('Error updating task status:', error);
-        throw new Error('Failed to update task status');
-    }
+    return updatedTask;
 }
 
 export const TaskService = {

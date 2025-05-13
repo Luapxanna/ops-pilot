@@ -11,39 +11,35 @@ export async function createWorkflow(
     tasks: { name: string; description: string; dependencyIds?: number[] }[],
     decodedToken: DecodedToken
 ) {
-    // Check if the user has the ProjectManager or OrgAdmin role
-    await authorizeRole(['PROJECTMANAGER', 'ORGADMIN'])(decodedToken);
+    const workflow = await prisma.workflow.create({
+        data: {
+            name,
+            description,
+            projectId,
+            organizationId: decodedToken.organizationId,
+            Task: {
+                create: tasks.map((task) => ({
+                    name: task.name,
+                    description: task.description,
+                    status: 'NOT_STARTED',
+                    dependencies: task.dependencyIds
+                        ? { connect: task.dependencyIds.map((id) => ({ id })) }
+                        : undefined,
+                })),
+            },
+        },
+    });
 
-    try {
-        const workflow = await prisma.workflow.create({
-            data: {
-                name,
-                description,
-                projectId,
-                organizationId: decodedToken.organizationId,
-                Task: {
-                    create: tasks.map((task) => ({
-                        name: task.name,
-                        description: task.description,
-                        status: 'NOT_STARTED', // Always set to NOT_STARTED
-                        dependencies: task.dependencyIds
-                            ? {
-                                  connect: task.dependencyIds.map((dependencyId) => ({ id: dependencyId })), // Connect dependencies
-                              }
-                            : undefined,
-                        project: { connect: { id: projectId } }, // Connect to the project
-                    })),
-                },
-            },
-            include: {
-                Task: true, // Include tasks in the response
-            },
-        });
-        return workflow;
-    } catch (error) {
-        console.error('Error creating workflow:', error);
-        throw new Error('Failed to create workflow');
-    }
+    // Log the creation
+    await logAuditEntry(
+        'Workflow',
+        'CREATE',
+        null,
+        workflow,
+        decodedToken.id
+    );
+
+    return workflow;
 }
 
 // New function to list workflows

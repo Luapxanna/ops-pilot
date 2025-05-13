@@ -39,7 +39,12 @@ export const updateTaskStatus = api(
         const decodedToken = await authenticateRequest(headers); // Authenticate the request
         console.log('Decoded Token:', decodedToken); // Log decoded token
 
-        const updatedTask = await TaskService.updateTaskStatus(id, status);
+        const mappedToken: DecodedToken = {
+            id: decodedToken.user.id,
+            role: decodedToken.user.role,
+            organizationId: decodedToken.user.organizationId,
+        };
+        const updatedTask = await TaskService.updateTaskStatus(id, status, mappedToken);
         return { success: true, data: updatedTask };
     }
 );
