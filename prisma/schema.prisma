@@ -141,6 +141,7 @@ model Task {
   project      Project       @relation(fields: [projectId], references: [id])
   workflowId   Int
   workflow     Workflow      @relation(fields: [workflowId], references: [id])
+  duedate      DateTime      @default(now())
   inProgressAt DateTime? // Timestamp when the task status changes to IN_PROGRESS
   completedAt  DateTime? // Timestamp when the task status changes to COMPLETED
   ExternalLog  ExternalLog[]
