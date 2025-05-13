@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
 import { getTaskCompletionPercentage, getProjectDurationMetrics, getTopEmployeesByEfficiency } from '../kpi/kpi.service';
-import { redis } from './kpi.service';
+import { redis } from '../kpi/kpi.service';
 
 const prisma = new PrismaClient();
 
