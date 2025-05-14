@@ -1,7 +1,7 @@
 import { PrismaClient, Status } from '@prisma/client';
 import { authorizeRole } from '../auth/auth.middleware';
 import { DecodedToken } from '../project/model';
-
+import { logAuditEntry } from '../audit/audit.service';
 const prisma = new PrismaClient();
 
 export async function createWorkflow(
@@ -22,6 +22,7 @@ export async function createWorkflow(
                     name: task.name,
                     description: task.description,
                     status: 'NOT_STARTED',
+                    project: { connect: { id: projectId } }, // Include the project field
                     dependencies: task.dependencyIds
                         ? { connect: task.dependencyIds.map((id) => ({ id })) }
                         : undefined,
