@@ -7,18 +7,15 @@ export const logTime = api(
         method: 'POST',
         path: '/tasks/:taskId/log-time',
     },
-    async ({ taskId, headers }: { taskId: number; headers: Record<string, string> }) => {
+    async ({ taskId, hours, headers }: { taskId: number; hours: number; headers: Record<string, string> }) => {
         console.log('Headers:', headers); // Log headers
         console.log('Task ID:', taskId); // Log task ID
 
         const decodedToken = await authenticateRequest(headers); // Authenticate the request
         console.log('Decoded Token:', decodedToken); // Log decoded token
 
-        // Calculate hours worked using the service
-        const hoursWorked = await TimeLogService.calculateTaskHours(taskId);
-
         // Log the calculated time
-        const timeLog = await TimeLogService.logTime(taskId, decodedToken.user.id, new Date(), hoursWorked);
+        const timeLog = await TimeLogService.logTime(taskId, decodedToken.user.id, new Date(), hours);
 
         return { success: true, data: timeLog };
     }
