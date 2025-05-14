@@ -1,6 +1,6 @@
 import { api } from 'encore.dev/api';
-import { getTaskCompletionPercentage, getProjectDurationMetrics, getTopEmployeesByEfficiency, getCachedKPIs } from './kpi.service';
-
+import { getTaskCompletionPercentage, getProjectDurationMetrics, getCachedKPIs } from './kpi.service';
+// Manual api calling if needed
 /**
  * Endpoint for Task Completion Percentage
  */
@@ -23,7 +23,7 @@ export const getTaskCompletionPercentageAPI = api(
 /**
  * Endpoint for Project Duration Metrics
  */
-export const getProjectDurationMetricsAPI = api(
+export const getProjectDuration = api(
     {
         method: 'GET',
         path: '/kpis/project-duration',
@@ -40,20 +40,5 @@ export const getProjectDurationMetricsAPI = api(
 );
 
 /**
- * Endpoint for Top Employees by Efficiency
+ * Endpoint for Top Employees by Efficiency \\Removed as it is a leaderboard
  */
-export const getTopEmployeesByEfficiencyAPI = api(
-    {
-        method: 'GET',
-        path: '/kpis/top-employees',
-    },
-    async () => {
-        try {
-            const employeeEfficiency = await getCachedKPIs('employeeEfficiency', getTopEmployeesByEfficiency);
-            return { success: true, data: employeeEfficiency };
-        } catch (error) {
-            console.error('Error fetching Top Employees by Efficiency:', error);
-            throw new Error('Failed to fetch Top Employees by Efficiency');
-        }
-    }
-);

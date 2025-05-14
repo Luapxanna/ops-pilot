@@ -3,25 +3,6 @@ import { startOfWeek, endOfWeek } from 'date-fns';
 
 const prisma = new PrismaClient();
 
-async function calculateTaskHours(taskId: number): Promise<number> {
-    const task = await prisma.task.findUnique({
-        where: { id: taskId },
-        select: {
-            inProgressAt: true,
-            completedAt: true,
-        },
-    });
-
-    if (!task) {
-        throw new Error('Task not found');
-    }
-
-    if (task.inProgressAt && task.completedAt) {
-        return (task.completedAt.getTime() - task.inProgressAt.getTime()) / (1000 * 60 * 60); // Convert milliseconds to hours
-    }
-
-    return 0; 
-}
 
 async function logTime(taskId: number, userId: string, date: Date, hours: number) {
     if (!taskId || !userId || !date) {
@@ -82,18 +63,13 @@ async function calculateWeeklyHours(userId: string): Promise<{ totalHours: numbe
         const totalHours = timeLogs.reduce((sum, log) => sum + (log.hours || 0), 0);
 
         // Check for warnings
-        let warning: string | undefined;
-        const isEndOfWeek = new Date() > endOfCurrentWeek; // Check if the week has ended
-        if (isEndOfWeek) {
-            if (totalHours > 40) {
-                warning = 'Warning: Total hours worked this week exceed 40 hours.';
-            } else if (totalHours < 20) {
-                warning = 'Warning: Total hours worked this week are less than 20 hours.';
-            }
+        let warning: string = 'No warnings for this week.';
+        if (totalHours > 40) {
+            warning = 'Warning: Total hours worked this week exceed 40 hours.';
+        } else if (totalHours < 20) {
+            warning = 'Warning: Total hours worked this week are less than 20 hours.';
         }
-        else {
-            warning = 'The working week is not over yet. Please check back later.';
-        }
+
         return { totalHours, warning };
     } catch (error) {
         console.error('Error calculating weekly hours:', error);
@@ -101,9 +77,30 @@ async function calculateWeeklyHours(userId: string): Promise<{ totalHours: numbe
     }
 }
 
+async function getTaskHours(taskId: number): Promise<number> {
+    if (!taskId) {
+        throw new Error('Task ID is required');
+    }
+
+    try {
+        // Fetch all time logs for the given task ID
+        const timeLogs = await prisma.timeLog.findMany({
+            where: { taskId },
+        });
+
+        // Calculate the total hours logged for the task
+        const totalHours = timeLogs.reduce((sum, log) => sum + (log.hours || 0), 0);
+
+        return totalHours;
+    } catch (error) {
+        console.error('Error fetching task hours:', error);
+        throw new Error('Failed to fetch task hours');
+    }
+}
+
 export const TimeLogService = {
-    calculateTaskHours,
     logTime,
     getTimeLogsByTask,
     calculateWeeklyHours,
+    getTaskHours,
 };

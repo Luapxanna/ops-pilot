@@ -45,7 +45,7 @@ export const listWorkflows = api(
 
 export const getWorkflowById = api(
     {
-        method: 'GET',
+        method: 'POST',
         path: '/workflows/:id',
     },
     async ({ id, headers }: { id: number; headers: Record<string, string> }) => {

@@ -46,41 +46,8 @@ export async function getProjectDurationMetrics() {
 }
 
 /**
- * Get Top Employees by Efficiency
+ * Get Top Employees by Efficiency \\It is leaderboard so this one is removed
  */
-export async function getTopEmployeesByEfficiency() {
-    const tasks = await prisma.task.findMany({
-        select: {
-            assigneeId: true,
-            inProgressAt: true,
-            completedAt: true,
-        },
-        where: {
-            completedAt: { not: null }, // Only include tasks that have been completed
-        },
-    });
-
-    const employeeEfficiency = tasks.reduce((acc, task) => {
-        if (!task.assigneeId || !task.inProgressAt || !task.completedAt) return acc;
-
-        const completionTime = (new Date(task.completedAt).getTime() - new Date(task.inProgressAt).getTime()) / (1000 * 60 * 60 * 24); // Completion time in days
-
-        if (!acc[task.assigneeId]) {
-            acc[task.assigneeId] = { assigneeId: task.assigneeId, totalTasks: 0, totalCompletionTime: 0 };
-        }
-
-        acc[task.assigneeId].totalTasks += 1;
-        acc[task.assigneeId].totalCompletionTime += completionTime;
-
-        return acc;
-    }, {} as Record<string, { assigneeId: string; totalTasks: number; totalCompletionTime: number }>);
-
-    return Object.values(employeeEfficiency).map((employee) => ({
-        assigneeId: employee.assigneeId,
-        totalTasks: employee.totalTasks,
-        avgCompletionTime: employee.totalCompletionTime / employee.totalTasks, // Average completion time
-    }));
-}
 
 /**
  * Get Cached KPIs
@@ -123,16 +90,14 @@ export async function getCachedKPIsWithRedis(metric: string, fetchFunction: () =
 /**
  * Schedule daily KPI cache refresh
  */
-cron.schedule('0 0 * * *', async () => { // Runs daily at midnight
+cron.schedule('0 0 * * *', async () => { // Runs daily at midnight, tested with * * * * *
     try {
         const taskCompletionPercentage = await getTaskCompletionPercentage();
         const projectDurationMetrics = await getProjectDurationMetrics();
-        const employeeEfficiency = await getTopEmployeesByEfficiency();
 
         // Update Redis cache
         await redis.set('taskCompletionPercentage', JSON.stringify(taskCompletionPercentage), 'EX', 24 * 60 * 60);
         await redis.set('projectDurationMetrics', JSON.stringify(projectDurationMetrics), 'EX', 24 * 60 * 60);
-        await redis.set('employeeEfficiency', JSON.stringify(employeeEfficiency), 'EX', 24 * 60 * 60);
 
         console.log('KPI cache refreshed successfully');
     } catch (error) {
@@ -143,5 +108,4 @@ cron.schedule('0 0 * * *', async () => { // Runs daily at midnight
 export const kpiService = {
     getTaskCompletionPercentage,
     getProjectDurationMetrics,
-    getTopEmployeesByEfficiency,
 };

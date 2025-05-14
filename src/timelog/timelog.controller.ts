@@ -23,8 +23,8 @@ export const logTime = api(
 
 export const getTimeLogsByTask = api(
     {
-        method: 'GET',
-        path: '/tasks/:taskId/time-logs',
+        method: 'POST',
+        path: '/tasks/time-logs',
     },
     async ({ taskId, headers }: { taskId: number; headers: Record<string, string> }) => {
         console.log('Headers:', headers); // Log headers
@@ -40,8 +40,8 @@ export const getTimeLogsByTask = api(
 
 export const getTaskHours = api(
     {
-        method: 'GET',
-        path: '/tasks/:id/hours',
+        method: 'POST',
+        path: '/tasks/hours',
     },
     async ({ id, headers }: { id: number; headers: Record<string, string> }) => {
         console.log('Headers:', headers); // Log headers
@@ -51,16 +51,16 @@ export const getTaskHours = api(
         console.log('Decoded Token:', decodedToken); // Log decoded token
 
         // Calculate hours worked using the service
-        const hoursWorked = await TimeLogService.calculateTaskHours(id);
+        const totalHours = await TimeLogService.getTaskHours(id);
 
-        return { success: true, data: { hoursWorked } };
+        return { success: true, data: { totalHours } };
     }
 );
 
 export const getWeeklyHours = api(
     {
-        method: 'POST', // Change to POST since we're now accepting a request body
-        path: '/users/weekly-hours', // Remove the path parameter
+        method: 'POST', 
+        path: '/users/weekly-hours',
     },
     async ({ userId, headers }: {  userId: string, headers: Record<string, string> }) => {
         console.log('Headers:', headers); // Log headers
@@ -80,7 +80,7 @@ export const getWeeklyHours = api(
 
         // Calculate weekly hours using the service
         const { totalHours, warning } = await TimeLogService.calculateWeeklyHours(userId);
-
+        console.log(warning); // Log the warning message if any
         return { success: true, data: { totalHours, warning } };
     }
 );

@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
-import { getTaskCompletionPercentage, getProjectDurationMetrics, getTopEmployeesByEfficiency } from '../kpi/kpi.service';
+import { getTaskCompletionPercentage, getProjectDurationMetrics } from '../kpi/kpi.service';
 import { redis } from '../kpi/kpi.service';
 
 const prisma = new PrismaClient();
@@ -33,7 +33,6 @@ export async function generateDailyDigest() {
     try {
         const taskCompletionPercentage = await getTaskCompletionPercentage();
         const projectDurationMetrics = await getProjectDurationMetrics();
-        const employeeEfficiency = await getTopEmployeesByEfficiency();
 
         // Compose the digest as HTML
         const htmlDigest = `
@@ -46,17 +45,6 @@ export async function generateDailyDigest() {
                     .map(
                         (project) =>
                             `<li>${project.projectName}: ${project.duration || 'N/A'} days</li>`
-                    )
-                    .join('')}
-            </ul>
-            <h2>Top Employees by Efficiency</h2>
-            <ul>
-                ${employeeEfficiency
-                    .map(
-                        (employee) =>
-                            `<li>${employee.assigneeId}: ${employee.avgCompletionTime.toFixed(
-                                2
-                            )} days (Total Tasks: ${employee.totalTasks})</li>`
                     )
                     .join('')}
             </ul>
@@ -73,18 +61,7 @@ ${taskCompletionPercentage.toFixed(2)}%
 Project Duration Metrics:
 ${projectDurationMetrics
     .map((project) => `${project.projectName}: ${project.duration || 'N/A'} days`)
-    .join('\n')}
-
-Top Employees by Efficiency:
-${employeeEfficiency
-    .map(
-        (employee) =>
-            `${employee.assigneeId}: ${employee.avgCompletionTime.toFixed(
-                2
-            )} days (Total Tasks: ${employee.totalTasks})`
-    )
-    .join('\n')}
-        `;
+    .join('\n')}`;
 
         // Log the digest
         console.log('Daily Digest (HTML):', htmlDigest);
@@ -114,12 +91,10 @@ export async function recalculateKPIs() {
     try {
         const taskCompletionPercentage = await getTaskCompletionPercentage();
         const projectDurationMetrics = await getProjectDurationMetrics();
-        const employeeEfficiency = await getTopEmployeesByEfficiency();
 
         // Update Redis cache
         await redis.set('taskCompletionPercentage', JSON.stringify(taskCompletionPercentage), 'EX', 24 * 60 * 60);
         await redis.set('projectDurationMetrics', JSON.stringify(projectDurationMetrics), 'EX', 24 * 60 * 60);
-        await redis.set('employeeEfficiency', JSON.stringify(employeeEfficiency), 'EX', 24 * 60 * 60);
 
         console.log('KPI cache refreshed successfully.');
     } catch (error) {
